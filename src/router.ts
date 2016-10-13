@@ -1,7 +1,7 @@
 import * as pathToRegexp from 'path-to-regexp';
 
 function trimSlashes(str) {
-    return str.replace(/^\/+|\/+$/g,'');
+    return str.replace(/^\/|\/$/g,'');
 }
 
 function decodeParam(val) {
