@@ -1,0 +1,21 @@
+{
+  "name": "router-async",
+  "version": "0.0.1",
+  "dependencies": {
+    "isarray": {
+      "version": "0.0.1",
+      "from": "isarray@0.0.1",
+      "resolved": "https://registry.npmjs.org/isarray/-/isarray-0.0.1.tgz"
+    },
+    "path-to-regexp": {
+      "version": "1.6.0",
+      "from": "path-to-regexp@>=1.6.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-1.6.0.tgz"
+    },
+    "typescript": {
+      "version": "2.1.0-dev.20161013",
+      "from": "typescript@next",
+      "resolved": "https://registry.npmjs.org/typescript/-/typescript-2.1.0-dev.20161013.tgz"
+    }
+  }
+}

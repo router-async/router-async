@@ -1,0 +1,30 @@
+{
+  "name": "router-async",
+  "version": "0.0.1",
+  "author": {
+    "name": "Oleg Martynov",
+    "email": "olegman.ru@gmail.com"
+  },
+  "bugs": {
+    "url": "https://github.com/olegman/router-async/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/olegman/router-async.git"
+  },
+  "license": "MIT",
+  "main": "lib/router.js",
+  "typings": "lib/router.d.ts",
+  "scripts": {
+    "clean": "rm -rf lib",
+    "watch": "npm run clean && tsc -p . --watch",
+    "transpile": "npm run clean && tsc -p .",
+    "tsc": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "next"
+  },
+  "dependencies": {
+    "path-to-regexp": "^1.6.0"
+  }
+}
