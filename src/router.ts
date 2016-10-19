@@ -16,17 +16,29 @@ function decodeParam(val) {
     }
 }
 
+export class RouterError {
+    message: any;
+    code: any;
+    name: any;
+    constructor(message, code) {
+        this.name = 'RouterError';
+        this.message = message;
+        this.code = code;
+    }
+}
+
 export default class Router {
     private routes: any;
     private hooks: any;
     constructor({ routes, hooks }) {
+        // console.log('routerAsync init routes', routes);
         this.routes = [];
         this.hooks = hooks;
         if (Array.isArray(routes)) {
             routes = { childs: routes };
         }
         this.walk(routes);
-        // console.log(this.routes);
+        // console.log('routerAsync final routes', this.routes);
     }
     private walk(route, walkPath = []) {
         if (route.childs) {
@@ -46,44 +58,79 @@ export default class Router {
             const keys = [];
             const pattern = pathToRegexp(path, keys);
             // wrap action with middlewares
-            let action = route.action;
-            for (const step of walkPath) {
-                if (step.action) middlewares.push(step.action);
-            }
-            if (middlewares.length) {
-                for (const middleware of middlewares) {
-                    action = middleware.bind(null, {next: action, route})
+            let action = route.action ? route.action : null;
+            if (action) { // redirect don't have action
+                for (const step of walkPath) {
+                    if (step.action) middlewares.push(step.action);
+                }
+                if (middlewares.length) {
+                    for (const middleware of middlewares) {
+                        action = middleware.bind(null, {next: action, route})
+                    }
                 }
             }
             // push result route
+            // TODO: check and add only existing properties
             this.routes.push({
                 path,
                 pattern,
                 keys,
-                action
+                action,
+                status: route.status,
+                to: route.to
             });
         }
     }
-    private async runHooks(hook, options) {
+    async runHooks(hook, options) {
         for (const hooks of this.hooks) {
             if (hooks[hook]) await hooks[hook](options);
         }
     }
-    async resolve({ path, ctx = {} }) {
-        await this.runHooks('start', { path, ctx });
+    matchRoute(path) {
         for (const route of this.routes) {
             const match = route.pattern.exec(path);
             if (match) {
-                await this.runHooks('match', { ctx });
-                let params = {};
-                for (let i = 1; i < match.length; i += 1) {
-                    params[route.keys[i - 1].name] = decodeParam(match[i]);
-                }
-                const resolved = await route.action({ path, ctx, keys: [...route.keys], params });
-                await this.runHooks('resolve', { ctx });
-                return resolved;
+                return { route, match };
             }
         }
-        throw 'Not Found';
+        throw new RouterError('Not Found', 404);
+    }
+    async match({ path, ctx }) {
+        const redirectHistory = new Map();
+        let status = 200;
+        let redirect = null;
+        let route = null;
+        let match = null;
+        //TODO: refactor this shit
+        const findRoute = path => {
+            let result = this.matchRoute(path);
+            if (result.route.status) status = result.route.status;
+            if (result.route.status === 301 || result.route.status === 302) {
+                if (redirectHistory.has(result.route)) {
+                    throw new RouterError('Circular Redirect', 500);
+                } else {
+                    redirectHistory.set(result.route, true);
+                    redirect = result.route.to;
+                    findRoute(result.route.to);
+                }
+            } else {
+                route = result.route;
+                match = result.match;
+            }
+        };
+        findRoute(path);
+        let params = {};
+        for (let i = 1; i < match.length; i += 1) {
+            params[route.keys[i - 1].name] = decodeParam(match[i]);
+        }
+        return { route, status, params, redirect };
+    }
+    async resolve({ path, ctx = {} }) {
+        await this.runHooks('start', { path, ctx });
+        const { route, status, params, redirect } = await this.match({ path, ctx });
+        await this.runHooks('match', { route, params, ctx });
+        const result = await route.action({ path, ctx, keys: [...route.keys], params });
+        await this.runHooks('resolve', { ctx });
+        return { result, status, redirect };
     }
 }

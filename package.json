@@ -1,10 +1,21 @@
 {
   "name": "router-async",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": {
     "name": "Oleg Martynov",
-    "email": "olegman.ru@gmail.com"
+    "email": "olegman.ru@gmail.com",
+    "url": "https://github.com/olegman"
   },
+  "contributors": [
+    {
+      "name" : "Aleksey Novikov",
+      "url" : "https://github.com/lamo2k123"
+    },
+    {
+      "name" : "Alexandra Borovova",
+      "url" : "https://github.com/lutien"
+    }
+  ],
   "bugs": {
     "url": "https://github.com/olegman/router-async/issues"
   },
