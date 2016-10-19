@@ -16,6 +16,26 @@ function decodeParam(val) {
     }
 }
 
+// TODO: write correct types
+export interface Match {
+    length: number,
+    [index: number]: string;
+}
+export interface Key {
+    name: string
+}
+export interface ActionOptions {
+    path: string,
+    keys: Array<Key>
+}
+export interface Action {
+    (ActionOptions): any
+}
+export interface Route {
+    action: Action,
+    keys: Array<Key>;
+}
+
 export class RouterError {
     message: any;
     code: any;
@@ -31,14 +51,14 @@ export default class Router {
     private routes: any;
     private hooks: any;
     constructor({ routes, hooks }) {
-        // console.log('routerAsync init routes', routes);
+        console.log('routerAsync init routes', routes);
         this.routes = [];
         this.hooks = hooks;
         if (Array.isArray(routes)) {
             routes = { childs: routes };
         }
         this.walk(routes);
-        // console.log('routerAsync final routes', this.routes);
+        console.log('routerAsync final routes', this.routes);
     }
     private walk(route, walkPath = []) {
         if (route.childs) {
@@ -99,8 +119,8 @@ export default class Router {
         const redirectHistory = new Map();
         let status = 200;
         let redirect = null;
-        let route = null;
-        let match = null;
+        let route: Route;
+        let match: Match;
         //TODO: refactor this shit
         const findRoute = path => {
             let result = this.matchRoute(path);
