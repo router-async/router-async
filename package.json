@@ -17,11 +17,11 @@
     }
   ],
   "bugs": {
-    "url": "https://github.com/olegman/router-async/issues"
+    "url": "https://github.com/router-async/router-async/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/olegman/router-async.git"
+    "url": "https://github.com/router-async/router-async.git"
   },
   "license": "MIT",
   "main": "lib/router.js",
