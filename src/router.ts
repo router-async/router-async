@@ -51,14 +51,14 @@ export default class Router {
     private routes: any;
     private hooks: any;
     constructor({ routes, hooks }) {
-        console.log('routerAsync init routes', routes);
+        // console.log('routerAsync init routes', routes);
         this.routes = [];
         this.hooks = hooks;
         if (Array.isArray(routes)) {
             routes = { childs: routes };
         }
         this.walk(routes);
-        console.log('routerAsync final routes', this.routes);
+        // console.log('routerAsync final routes', this.routes);
     }
     private walk(route, walkPath = []) {
         if (route.childs) {
