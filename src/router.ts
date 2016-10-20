@@ -51,14 +51,12 @@ export default class Router {
     private routes: any;
     private hooks: any;
     constructor({ routes, hooks }) {
-        // console.log('routerAsync init routes', routes);
         this.routes = [];
         this.hooks = hooks;
         if (Array.isArray(routes)) {
             routes = { childs: routes };
         }
         this.walk(routes);
-        // console.log('routerAsync final routes', this.routes);
     }
     private walk(route, walkPath = []) {
         if (route.childs) {
@@ -148,9 +146,9 @@ export default class Router {
     async resolve({ path, ctx = {} }) {
         await this.runHooks('start', { path, ctx });
         const { route, status, params, redirect } = await this.match({ path, ctx });
-        await this.runHooks('match', { route, params, ctx });
-        const result = await route.action({ path, ctx, keys: [...route.keys], params });
-        await this.runHooks('resolve', { ctx });
-        return { result, status, redirect };
+        await this.runHooks('match', { path, route, status, params, redirect, ctx });
+        const result = await route.action({ path, route, status, params, redirect, ctx });
+        await this.runHooks('resolve', { path, route, status, params, redirect, result, ctx });
+        return { path, route, status, params, redirect, result, ctx };
     }
 }
