@@ -37,17 +37,38 @@ export interface Route {
 }
 
 export class RouterError {
-    message: any;
-    code: any;
-    name: any;
-    constructor(message, code) {
+    message: string;
+    status: number;
+    name: string;
+    constructor(message: string, status: number) {
         this.name = 'RouterError';
         this.message = message;
-        this.code = code;
+        this.status = status;
     }
 }
 
-export default class Router {
+export class Context {
+    private keys: Object;
+    constructor() {
+        this.keys = {};
+    }
+    set(key, value) {
+        if (key in this.keys) {
+            console.warn(`Key ${key} is already set to context`);
+        } else {
+            this.keys[key] = value;
+        }
+    }
+    get(key) {
+        if (key in this.keys) {
+            return this.keys[key];
+        } else {
+            return null;
+        }
+    }
+}
+
+export class Router {
     private routes: any;
     private hooks: any;
     constructor({ routes, hooks }) {
@@ -83,7 +104,7 @@ export default class Router {
                 }
                 if (middlewares.length) {
                     for (const middleware of middlewares) {
-                        action = middleware.bind(null, {next: action, route})
+                        action = middleware.bind(null, action)
                     }
                 }
             }
@@ -143,7 +164,7 @@ export default class Router {
         }
         return { route, status, params, redirect };
     }
-    async resolve({ path, ctx = {} }) {
+    async resolve({ path, ctx = new Context() }) {
         await this.runHooks('start', { path, ctx });
         const { route, status, params, redirect } = await this.match({ path, ctx });
         await this.runHooks('match', { path, route, status, params, redirect, ctx });

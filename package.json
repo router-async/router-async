@@ -24,8 +24,8 @@
     "url": "https://github.com/router-async/router-async.git"
   },
   "license": "MIT",
-  "main": "lib/router.js",
-  "typings": "lib/router.d.ts",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
     "clean": "rm -rf lib",
     "watch": "npm run clean && tsc -p . --watch",

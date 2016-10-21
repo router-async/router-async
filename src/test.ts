@@ -1,3 +1,4 @@
+/*
 import Router from './router';
 
 const delay = () => new Promise(resolve => setTimeout(() => resolve(), 3000));
@@ -87,3 +88,4 @@ router.resolve({ path: '/ru', ctx: {iProp: true} }).then(result => {
 }).catch(error => {
     console.log(error);
 });
+*/
