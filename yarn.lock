@@ -11,6 +11,6 @@ path-to-regexp@^1.6.0:
     isarray "0.0.1"
 
 typescript@next:
-  version "2.1.0-dev.20161019"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.1.0-dev.20161019.tgz#45c6a32b1b4a00dd87c8e1e3ee3e00b80f61b5c0"
+  version "2.1.0-dev.20161027"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.1.0-dev.20161027.tgz#f6456102956dee194398fa1ad093b944c8db4f0a"
 
