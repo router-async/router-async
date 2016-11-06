@@ -71,7 +71,7 @@ export class Context {
 export class Router {
     private routes: any;
     private hooks: any;
-    constructor({ routes, hooks }) {
+    constructor({ routes, hooks = {} }) {
         this.routes = [];
         this.hooks = hooks;
         if (Array.isArray(routes)) {

@@ -11,6 +11,7 @@ script:
   - npm i -g typings
   - typings install
   - npm run transpile
+  - npm test
 
 deploy:
   provider: npm

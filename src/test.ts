@@ -1,35 +1,21 @@
-/*
-import Router from './router';
+import test from 'ava';
 
-const delay = () => new Promise(resolve => setTimeout(() => resolve(), 3000));
+import { Router } from './index';
 
 const routes = [
     {
         path: '/lalala/:param',
         action(options) {
-            console.log('options', options);
-            return 'lalalal'
+            return 'lalala' + '/' + options.params.param;
         }
     },
     {
         path: '/',
-        async action({ next }, options) {
+        async action(next, options) {
             options.ctx.mProp = true;
-            // console.log('/ options and route', options);
-            // console.log('/ middleware', next(options));
             return await next(options);
-            // return 'eba';
         },
         childs: [
-            {
-                path: '/:lang',
-                async action(options) {
-                    options.ctx.rProp = true;
-                    // console.log('options', options);
-                    await delay();
-                    return 'ROOOOOOOOOT';
-                }
-            },
             {
                 path: 'home',
                 action() {
@@ -37,30 +23,21 @@ const routes = [
                 }
             },
             {
-                path: 'news',
-                action({ next }, options) {
-                    console.log('news middleware', next(options));
+                path: '/news',
+                action(next, options) {
                     return next(options);
-                    // return 'eba news';
                 },
                 childs: [
                     {
                         path: '/',
                         action() {
-                            return '/ news'
+                            return '/news'
                         }
                     },
                     {
                         path: 'item',
-                        action(options) {
-                            console.log('options', options);
-                            return 'news/item';
-                        }
-                    },
-                    {
-                        path: 'archive',
                         action() {
-                            return 'news/archive';
+                            return '/news/item';
                         }
                     }
                 ]
@@ -69,23 +46,33 @@ const routes = [
     }
 ];
 
-const firstHook = {
-    start:   ({ path, ctx }) => { console.log('start 1', path, ctx); },
-    // match:   () => { console.log('match 1'); },
-    resolve: ({ ctx }) => { console.log('resolve 1', ctx); }
-};
-const secondHook = {
-    start:   () => { console.log('start 2'); },
-    match:   () => { console.log('match 2'); },
-    resolve: () => { console.log('resolve 2'); }
-};
-const hooks = [firstHook, secondHook];
+const router = new Router({ routes });
 
-const router = new Router({ routes, hooks });
-
-router.resolve({ path: '/ru', ctx: {iProp: true} }).then(result => {
-    console.log(result);
-}).catch(error => {
-    console.log(error);
+test('test children', t => {
+    return router.resolve({ path: '/home' }).then(result => {
+        t.is(result.result, 'Home sweet home!');
+    });
 });
-*/
+
+test('test children level 2', t => {
+    return router.resolve({ path: '/news/item' }).then(result => {
+        t.is(result.result, '/news/item');
+    });
+});
+
+test('test params', t => {
+    return router.resolve({ path: '/lalala/?id=1' }).then(result => {
+        t.is(result.result, 'lalala/?id=1');
+    });
+});
+
+test('test not found url', t => {
+    return router.resolve({ path: '/test' }).catch(result => {
+        t.deepEqual(result, {
+            name: 'RouterError',
+            message: 'Not Found',
+            status: 404
+        });
+    });
+});
+

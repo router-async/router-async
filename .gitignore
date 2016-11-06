@@ -4,3 +4,5 @@ dev_modules
 *.log
 lib
 typings
+coverage
+.nyc_output

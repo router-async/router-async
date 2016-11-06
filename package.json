@@ -8,12 +8,12 @@
   },
   "contributors": [
     {
-      "name" : "Aleksey Novikov",
-      "url" : "https://github.com/lamo2k123"
+      "name": "Aleksey Novikov",
+      "url": "https://github.com/lamo2k123"
     },
     {
-      "name" : "Alexandra Borovova",
-      "url" : "https://github.com/lutien"
+      "name": "Alexandra Borovova",
+      "url": "https://github.com/lutien"
     }
   ],
   "bugs": {
@@ -30,12 +30,27 @@
     "clean": "rm -rf lib",
     "watch": "npm run clean && tsc -p . --watch",
     "transpile": "npm run clean && tsc -p .",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "test": "tsc && ava",
+    "report": "nyc ava && nyc report --reporter=html",
+    "coverage": "nyc ava && nyc report --reporter=text-lcov | coveralls"
   },
   "devDependencies": {
+    "ava": "^0.16.0",
+    "nyc": "^8.4.0",
     "typescript": "next"
   },
   "dependencies": {
     "path-to-regexp": "^1.6.0"
+  },
+  "ava": {
+    "files": [
+      "lib/test.js"
+    ]
+  },
+  "nyc": {
+    "include": [
+      "lib/index.js"
+    ]
   }
 }
