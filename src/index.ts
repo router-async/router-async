@@ -1,4 +1,37 @@
 import * as pathToRegexp from 'path-to-regexp';
+import * as queryString from 'query-string';
+
+const createLocation = path => {
+    const parsedPath = parsePath(path);
+    return {
+        ...parsedPath,
+        query: queryString.parse(parsedPath.search)
+    };
+};
+
+const parsePath = path => {
+    let pathname = path || '/';
+    let search = '';
+    let hash = '';
+
+    const hashIndex = pathname.indexOf('#');
+    if (hashIndex !== -1) {
+        hash = pathname.substr(hashIndex);
+        pathname = pathname.substr(0, hashIndex)
+    }
+
+    const searchIndex = pathname.indexOf('?');
+    if (searchIndex !== -1) {
+        search = pathname.substr(searchIndex);
+        pathname = pathname.substr(0, searchIndex)
+    }
+
+    return {
+        pathname,
+        search: search === '?' ? '' : search,
+        hash: hash === '#' ? '' : hash
+    }
+};
 
 function trimSlashes(str) {
     return str.replace(/^\/+|\/+$/g,'');
@@ -165,16 +198,18 @@ export class Router {
         return { route, status, params, redirect };
     }
     async resolve({ path, ctx = new Context() }) {
+        const location = createLocation(path);
         const { route, status, params, redirect } = await this.match({ path, ctx });
         const result = await route.action({ path, route, status, params, redirect, ctx });
-        return { path, route, status, params, redirect, result, ctx };
+        return { path, location, route, status, params, redirect, result, ctx };
     }
     async run({ path, ctx = new Context(), silent = false }) {
-        await this.runHooks('start', { path, ctx, silent });
+        const location = createLocation(path);
+        await this.runHooks('start', { path, location, ctx, silent });
         const { route, status, params, redirect } = await this.match({ path, ctx });
-        await this.runHooks('match', { path, route, status, params, redirect, ctx, silent });
+        await this.runHooks('match', { path, location, route, status, params, redirect, ctx, silent });
         const result = await route.action({ path, route, status, params, redirect, ctx });
-        await this.runHooks('resolve', { path, route, status, params, redirect, result, ctx, silent });
-        return { path, route, status, params, redirect, result, ctx };
+        await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx, silent });
+        return { path, location, route, status, params, redirect, result, ctx };
     }
 }

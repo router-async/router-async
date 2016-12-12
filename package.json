@@ -38,10 +38,11 @@
   "devDependencies": {
     "ava": "^0.16.0",
     "nyc": "^8.4.0",
-    "typescript": "next"
+    "typescript": "^2.1.4"
   },
   "dependencies": {
-    "path-to-regexp": "^1.6.0"
+    "path-to-regexp": "^1.6.0",
+    "query-string": "^4.2.3"
   },
   "ava": {
     "files": [
