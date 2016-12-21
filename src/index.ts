@@ -1,11 +1,16 @@
 import * as pathToRegexp from 'path-to-regexp';
 import * as queryString from 'query-string';
 
+export const parseQuery = query => queryString.parse(query);
+export const stringifyQuery = query => queryString.stringify(query);
+
+//TODO: maybe export location and work with location instead of path
 const createLocation = path => {
     const parsedPath = parsePath(path);
     return {
         ...parsedPath,
-        query: queryString.parse(parsedPath.search)
+        // TODO: move query out from location, it still here for backwards compatibility
+        query: parseQuery(parsedPath.search)
     };
 };
 
@@ -168,14 +173,15 @@ export class Router {
         throw new RouterError('Not Found', 404);
     }
     async match({ path, ctx }) {
+        const { pathname } = createLocation(path);
         const redirectHistory = new Map();
         let status = 200;
         let redirect = null;
         let route: Route;
         let match: Match;
         //TODO: refactor this shit
-        const findRoute = path => {
-            let result = this.matchRoute(path);
+        const findRoute = pathname => {
+            let result = this.matchRoute(pathname);
             if (result.route.status) status = result.route.status;
             if (result.route.status === 301 || result.route.status === 302) {
                 if (redirectHistory.has(result.route)) {
@@ -190,7 +196,7 @@ export class Router {
                 match = result.match;
             }
         };
-        findRoute(path);
+        findRoute(pathname);
         let params = {};
         for (let i = 1; i < match.length; i += 1) {
             params[route.keys[i - 1].name] = decodeParam(match[i]);
