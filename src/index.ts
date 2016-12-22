@@ -206,7 +206,7 @@ export class Router {
     async resolve({ path, ctx = new Context() }) {
         const location = createLocation(path);
         const { route, status, params, redirect } = await this.match({ path, ctx });
-        const result = await route.action({ path, route, status, params, redirect, ctx });
+        const result = await route.action({ path, location, route, status, params, redirect, ctx });
         return { path, location, route, status, params, redirect, result, ctx };
     }
     async run({ path, ctx = new Context(), silent = false }) {
@@ -214,7 +214,7 @@ export class Router {
         await this.runHooks('start', { path, location, ctx, silent });
         const { route, status, params, redirect } = await this.match({ path, ctx });
         await this.runHooks('match', { path, location, route, status, params, redirect, ctx, silent });
-        const result = await route.action({ path, route, status, params, redirect, ctx });
+        const result = await route.action({ path, location, route, status, params, redirect, ctx });
         await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx, silent });
         return { path, location, route, status, params, redirect, result, ctx };
     }

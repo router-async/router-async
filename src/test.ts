@@ -6,7 +6,7 @@ const routes = [
     {
         path: '/lalala/:param',
         action(options) {
-            return 'lalala' + '/' + options.params.param;
+            return 'lalala' + '/' + options.params.param + options.location.search;
         }
     },
     {
@@ -49,25 +49,31 @@ const routes = [
 const router = new Router({ routes });
 
 test('test children', t => {
-    return router.resolve({ path: '/home' }).then(result => {
+    return router.run({ path: '/home' }).then(result => {
         t.is(result.result, 'Home sweet home!');
     });
 });
 
 test('test children level 2', t => {
-    return router.resolve({ path: '/news/item' }).then(result => {
+    return router.run({ path: '/news/item' }).then(result => {
         t.is(result.result, '/news/item');
     });
 });
 
 test('test params', t => {
-    return router.resolve({ path: '/lalala/?id=1' }).then(result => {
-        t.is(result.result, 'lalala/?id=1');
+    return router.run({ path: '/lalala/param' }).then(result => {
+        t.is(result.result, 'lalala/param');
+    });
+});
+
+test('test query', t => {
+    return router.run({ path: '/lalala/param?id=1' }).then(result => {
+        t.is(result.result, 'lalala/param?id=1');
     });
 });
 
 test('test not found url', t => {
-    return router.resolve({ path: '/test' }).catch(result => {
+    return router.run({ path: '/test' }).catch(result => {
         t.deepEqual(result, {
             name: 'RouterError',
             message: 'Not Found',
