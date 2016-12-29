@@ -78,7 +78,7 @@ export class RouterError {
     message: string;
     status: number;
     name: string;
-    constructor(message: string, status: number) {
+    constructor(message: string = 'Internal Error', status: number = 500) {
         this.name = 'RouterError';
         this.message = message;
         this.status = status;
@@ -205,17 +205,34 @@ export class Router {
     }
     async resolve({ path, ctx = new Context() }) {
         const location = createLocation(path);
-        const { route, status, params, redirect } = await this.match({ path, ctx });
-        const result = await route.action({ path, location, route, status, params, redirect, ctx });
-        return { path, location, route, status, params, redirect, result, ctx };
+        try {
+            const { route, status, params, redirect } = await this.match({ path, ctx });
+            const result = await route.action({ path, location, route, status, params, redirect, ctx });
+            return { path, location, route, status, params, redirect, result, ctx, error: null };
+        } catch (error) {
+            if (error.name === 'RouterError') {
+                return { path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error };
+            } else {
+                throw error;
+            }
+        }
     }
     async run({ path, ctx = new Context(), silent = false }) {
         const location = createLocation(path);
-        await this.runHooks('start', { path, location, ctx, silent });
-        const { route, status, params, redirect } = await this.match({ path, ctx });
-        await this.runHooks('match', { path, location, route, status, params, redirect, ctx, silent });
-        const result = await route.action({ path, location, route, status, params, redirect, ctx });
-        await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx, silent });
-        return { path, location, route, status, params, redirect, result, ctx };
+        try {
+            await this.runHooks('start', { path, location, ctx, silent });
+            const { route, status, params, redirect } = await this.match({ path, ctx });
+            await this.runHooks('match', { path, location, route, status, params, redirect, ctx, silent });
+            const result = await route.action({ path, location, route, status, params, redirect, ctx });
+            await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx, silent });
+            return { path, location, route, status, params, redirect, result, ctx, error: null };
+        } catch (error) {
+            if (error.name === 'RouterError') {
+                await this.runHooks('error', { path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error });
+                return { path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error };
+            } else {
+                throw error;
+            }
+        }
     }
 }

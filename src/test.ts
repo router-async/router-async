@@ -48,37 +48,31 @@ const routes = [
 
 const router = new Router({ routes });
 
-test('test children', t => {
-    return router.run({ path: '/home' }).then(result => {
-        t.is(result.result, 'Home sweet home!');
-    });
+test('test children', async t => {
+    const { result } = await router.run({ path: '/home' });
+    t.is(result, 'Home sweet home!');
 });
 
-test('test children level 2', t => {
-    return router.run({ path: '/news/item' }).then(result => {
-        t.is(result.result, '/news/item');
-    });
+test('test children level 2', async t => {
+    const { result } = await router.run({ path: '/news/item' });
+    t.is(result, '/news/item');
 });
 
-test('test params', t => {
-    return router.run({ path: '/lalala/param' }).then(result => {
-        t.is(result.result, 'lalala/param');
-    });
+test('test params', async t => {
+    const { result } = await router.run({ path: '/lalala/param' });
+    t.is(result, 'lalala/param');
 });
 
-test('test query', t => {
-    return router.run({ path: '/lalala/param?id=1' }).then(result => {
-        t.is(result.result, 'lalala/param?id=1');
-    });
+test('test query', async t => {
+    const { result } = await router.run({ path: '/lalala/param?id=1' });
+    t.is(result, 'lalala/param?id=1');
 });
 
-test('test not found url', t => {
-    return router.run({ path: '/test' }).catch(result => {
-        t.deepEqual(result, {
-            name: 'RouterError',
-            message: 'Not Found',
-            status: 404
-        });
+test('test not found url', async t => {
+    const { error } = await router.run({ path: '/not-found' });
+    t.deepEqual(error, {
+        name: 'RouterError',
+        message: 'Not Found',
+        status: 404
     });
 });
-
