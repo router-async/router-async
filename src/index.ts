@@ -196,12 +196,17 @@ export class Router {
                 match = result.match;
             }
         };
-        findRoute(pathname);
+        // TODO: remove try catch?
+        try {
+            findRoute(pathname);
+        } catch (error) {
+            return { route: null, status: error.status, params: null, redirect: null, error }
+        }
         let params = {};
         for (let i = 1; i < match.length; i += 1) {
             params[route.keys[i - 1].name] = decodeParam(match[i]);
         }
-        return { route, status, params, redirect };
+        return { route, status, params, redirect, error: null };
     }
     async resolve({ path, ctx = new Context() }) {
         const location = createLocation(path);
@@ -219,9 +224,11 @@ export class Router {
     }
     async run({ path, ctx = new Context(), silent = false }) {
         const location = createLocation(path);
+        // TODO: remove try catch?
         try {
             await this.runHooks('start', { path, location, ctx, silent });
-            const { route, status, params, redirect } = await this.match({ path, ctx });
+            const { route, status, params, redirect, error } = await this.match({ path, ctx });
+            if (error !== null) throw error;
             await this.runHooks('match', { path, location, route, status, params, redirect, ctx, silent });
             const result = await route.action({ path, location, route, status, params, redirect, ctx });
             await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx, silent });
