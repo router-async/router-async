@@ -222,16 +222,16 @@ export class Router {
             }
         }
     }
-    async run({ path, ctx = new Context(), silent = false }) {
+    async run({ path, ctx = new Context() }) {
         const location = createLocation(path);
         // TODO: remove try catch?
         try {
-            await this.runHooks('start', { path, location, ctx, silent });
+            await this.runHooks('start', { path, location, ctx });
             const { route, status, params, redirect, error } = await this.match({ path, ctx });
             if (error !== null) throw error;
-            await this.runHooks('match', { path, location, route, status, params, redirect, ctx, silent });
+            await this.runHooks('match', { path, location, route, status, params, redirect, ctx });
             const result = await route.action({ path, location, route, status, params, redirect, ctx });
-            await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx, silent });
+            await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx });
             return { path, location, route, status, params, redirect, result, ctx, error: null };
         } catch (error) {
             if (error.name === 'RouterError') {
