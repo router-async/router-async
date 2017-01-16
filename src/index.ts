@@ -121,7 +121,7 @@ export class Router {
         if (route.childs) {
             walkPath.push(route);
             for (const child of route.childs) {
-                this.walk(child, walkPath);
+                this.walk(child, [...walkPath]);
             }
         } else {
             const fullWalkPath = [...walkPath, route];
