@@ -41,6 +41,26 @@ const routes = [
                         }
                     }
                 ]
+            },
+            {
+                path: 'redirect',
+                to: '/home',
+                status: 301
+            },
+            {
+                path: 'redirect-to-redirect',
+                to: '/redirect',
+                status: 301
+            },
+            {
+                path: 'redirect1',
+                to: '/redirect2',
+                status: 301
+            },
+            {
+                path: 'redirect2',
+                to: '/redirect1',
+                status: 301
             }
         ]
     }
@@ -74,5 +94,23 @@ test('test not found url', async t => {
         name: 'RouterError',
         message: 'Not Found',
         status: 404
+    });
+});
+
+// Redirects:
+test('test simple static redirect', async t => {
+    const { result } = await router.run({ path: '/redirect' });
+    t.is(result, 'Home sweet home!');
+});
+test('test 2 level static redirect', async t => {
+    const { result } = await router.run({ path: '/redirect-to-redirect' });
+    t.is(result, 'Home sweet home!');
+});
+test('test circular redirect', async t => {
+    const { error } = await router.run({ path: '/redirect1' });
+    t.deepEqual(error, {
+        name: 'RouterError',
+        message: 'Circular Redirect',
+        status: 500
     });
 });
