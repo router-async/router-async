@@ -12,6 +12,7 @@ script:
   - typings install
   - npm run transpile
   - npm test
+  - npm run coverage
 
 deploy:
   provider: npm
