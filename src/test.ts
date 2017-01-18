@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { Router } from './index';
+import { Router, Redirect } from './index';
 
 const routes = [
     {
@@ -44,23 +44,63 @@ const routes = [
             },
             {
                 path: 'redirect',
-                to: '/home',
-                status: 301
+                to: '/home'
             },
             {
                 path: 'redirect-to-redirect',
-                to: '/redirect',
-                status: 301
+                to: '/redirect'
             },
             {
                 path: 'redirect1',
-                to: '/redirect2',
-                status: 301
+                to: '/redirect2'
             },
             {
                 path: 'redirect2',
-                to: '/redirect1',
-                status: 301
+                to: '/redirect1'
+            },
+            {
+                path: 'dynamic-redirect',
+                action() {
+                    return new Redirect('/home');
+                }
+            },
+            {
+                path: 'dynamic-redirect-to-redirect',
+                action() {
+                    return new Redirect('/dynamic-redirect');
+                }
+            },
+            {
+                path: 'dynamic-redirect1',
+                action() {
+                    return new Redirect('/dynamic-redirect2');
+                }
+            },
+            {
+                path: 'dynamic-redirect2',
+                action() {
+                    return new Redirect('/dynamic-redirect1');
+                }
+            },
+            {
+                path: 'redirect-middleware',
+                action() {
+                    return new Redirect('/home');
+                },
+                childs: [
+                    {
+                        path: 'child1',
+                        action() {
+                            return 'Yo'
+                        }
+                    },
+                    {
+                        path: 'child2',
+                        action() {
+                            return 'Hi';
+                        }
+                    }
+                ]
             }
         ]
     }
@@ -91,13 +131,13 @@ test('test query', async t => {
 test('test not found url', async t => {
     const { error } = await router.run({ path: '/not-found' });
     t.deepEqual(error, {
-        name: 'RouterError',
         message: 'Not Found',
         status: 404
     });
 });
 
 // Redirects:
+// static
 test('test simple static redirect', async t => {
     const { result } = await router.run({ path: '/redirect' });
     t.is(result, 'Home sweet home!');
@@ -106,11 +146,41 @@ test('test 2 level static redirect', async t => {
     const { result } = await router.run({ path: '/redirect-to-redirect' });
     t.is(result, 'Home sweet home!');
 });
-test('test circular redirect', async t => {
+test('test static circular redirect', async t => {
     const { error } = await router.run({ path: '/redirect1' });
     t.deepEqual(error, {
-        name: 'RouterError',
         message: 'Circular Redirect',
         status: 500
     });
+});
+test('test correct static redirect status codes', async t => {
+    const { status } = await router.run({ path: '/redirect-to-redirect' });
+    t.true(status === 301 || status === 302);
+});
+// dynamic
+test('test dynamic redirect', async t => {
+    const { result, error } = await router.run({ path: '/dynamic-redirect' });
+    t.is(result, 'Home sweet home!');
+});
+test('test 2 level dynamic redirect', async t => {
+    const { result } = await router.run({ path: '/dynamic-redirect-to-redirect' });
+    t.is(result, 'Home sweet home!');
+});
+test('test dynamic circular redirect', async t => {
+    const { error } = await router.run({ path: '/dynamic-redirect1' });
+    t.deepEqual(error, {
+        message: 'Circular Redirect',
+        status: 500
+    });
+});
+test('test correct dynamic redirect status codes', async t => {
+    const { status } = await router.run({ path: '/dynamic-redirect-to-redirect' });
+    t.true(status === 301 || status === 302);
+});
+test('test dynamic redirect in middleware', async t => {
+    t.plan(2);
+    const { result: result1 } = await router.run({ path: '/redirect-middleware/child1' });
+    t.is(result1, 'Home sweet home!');
+    const { result: result2 } = await router.run({ path: '/redirect-middleware/child2' });
+    t.is(result2, 'Home sweet home!');
 });

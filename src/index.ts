@@ -77,10 +77,17 @@ export interface Route {
 export class RouterError {
     message: string;
     status: number;
-    name: string;
     constructor(message: string = 'Internal Error', status: number = 500) {
-        this.name = 'RouterError';
         this.message = message;
+        this.status = status;
+    }
+}
+
+export class Redirect {
+    path: string;
+    status: number;
+    constructor(path: string, status: number = 302) {
+        this.path = path;
         this.status = status;
     }
 }
@@ -147,99 +154,106 @@ export class Router {
                 }
             }
             // push result route
-            // TODO: check and add only existing properties
-            this.routes.push({
-                path,
-                pattern,
-                keys,
-                action,
-                status: route.status,
-                to: route.to
-            });
+            let resultRoute = {
+                path
+            };
+            if (pattern) resultRoute['pattern'] = pattern;
+            if (keys) resultRoute['keys'] = keys;
+            if (action) resultRoute['action'] = action;
+            if (route.status) resultRoute['status'] = route.status;
+            if (route.to) resultRoute['to'] = route.to;
+            this.routes.push(resultRoute);
         }
     }
-    async runHooks(hook, options) {
+    private matchRoute(path): any {
+        for (const route of this.routes) {
+            const match = route.pattern.exec(path);
+            if (match) {
+                return { route, match, error: null };
+            }
+        }
+        return { route: null, match: null, error: new RouterError('Not Found', 404) };
+    }
+    private async handleError(params) {
+        await this.runHooks('error', { ...params });
+        return { ...params };
+    }
+
+    public async runHooks(hook, options) {
         for (const hooks of this.hooks) {
             if (hooks[hook]) await hooks[hook](options);
         }
     }
-    matchRoute(path) {
-        for (const route of this.routes) {
-            const match = route.pattern.exec(path);
-            if (match) {
-                return { route, match };
-            }
-        }
-        throw new RouterError('Not Found', 404);
-    }
-    async match({ path, ctx }) {
+    public async match({ path, ctx }) {
         const { pathname } = createLocation(path);
         const redirectHistory = new Map();
-        let status = 200;
-        let redirect = null;
-        let route: Route;
-        let match: Match;
-        //TODO: refactor this shit
-        const findRoute = pathname => {
-            let result = this.matchRoute(pathname);
-            if (result.route.status) status = result.route.status;
-            if (result.route.status === 301 || result.route.status === 302) {
-                if (redirectHistory.has(result.route)) {
-                    throw new RouterError('Circular Redirect', 500);
+
+        const doMatch = (pathname, status = null, redirect = null) => {
+            const { route, match, error } = this.matchRoute(pathname);
+            if (error !== null) return { route, match, status: error.status, redirect, error};
+            if (route.status) status = route.status;
+            // redirect! we need to dive deeper
+            if (route.to) {
+                if (status === null) status = 302;
+                redirect = route.to;
+                if (redirectHistory.has(route)) {
+                    const error = new RouterError('Circular Redirect', 500);
+                    return { route, match, status: error.status, redirect, error };
                 } else {
-                    redirectHistory.set(result.route, true);
-                    redirect = result.route.to;
-                    findRoute(result.route.to);
+                    redirectHistory.set(route, true);
+                    return doMatch(route.to, status, redirect);
                 }
             } else {
-                route = result.route;
-                match = result.match;
+                if (status === null) status = 200;
+                return { route, match, status, redirect, error: null };
             }
         };
-        // TODO: remove try catch?
-        try {
-            findRoute(pathname);
-        } catch (error) {
-            return { route: null, status: error.status, params: null, redirect: null, error }
-        }
-        let params = {};
-        for (let i = 1; i < match.length; i += 1) {
-            params[route.keys[i - 1].name] = decodeParam(match[i]);
-        }
-        return { route, status, params, redirect, error: null };
-    }
-    async resolve({ path, ctx = new Context() }) {
-        const location = createLocation(path);
-        try {
-            const { route, status, params, redirect } = await this.match({ path, ctx });
-            const result = await route.action({ path, location, route, status, params, redirect, ctx });
-            return { path, location, route, status, params, redirect, result, ctx, error: null };
-        } catch (error) {
-            if (error.name === 'RouterError') {
-                return { path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error };
-            } else {
-                throw error;
+
+        const { route, match, status, redirect, error } = doMatch(pathname);
+        if (error !== null) {
+            return { route, status, redirect, error, params: null }
+        } else {
+            let params = {};
+            for (let i = 1; i < match.length; i += 1) {
+                params[route.keys[i - 1].name] = decodeParam(match[i]);
             }
+            return { route, status, redirect, error, params };
         }
     }
-    async run({ path, ctx = new Context() }) {
+    public async run({ path, ctx = new Context() }) {
         const location = createLocation(path);
-        // TODO: remove try catch?
-        try {
+        const redirectHistory = new Map();
+
+        const doRun = async (path, location, ctx, redirect = null, status = null) => {
             await this.runHooks('start', { path, location, ctx });
-            const { route, status, params, redirect, error } = await this.match({ path, ctx });
-            if (error !== null) throw error;
-            await this.runHooks('match', { path, location, route, status, params, redirect, ctx });
-            const result = await route.action({ path, location, route, status, params, redirect, ctx });
-            await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx });
-            return { path, location, route, status, params, redirect, result, ctx, error: null };
-        } catch (error) {
-            if (error.name === 'RouterError') {
-                await this.runHooks('error', { path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error });
-                return { path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error };
-            } else {
-                throw error;
+
+            const matchResult = await this.match({ path, ctx });
+            const { route, params, error } = matchResult;
+            if (redirect === null) {
+                redirect = matchResult.redirect;
+                status = matchResult.status;
             }
-        }
+            if (error !== null) return await this.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error });
+            await this.runHooks('match', { path, location, route, status, params, redirect, ctx });
+
+            const result = await route.action({ path, location, route, status, params, redirect, ctx });
+            if (result instanceof RouterError) return await this.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result });
+            if (result instanceof Redirect) {
+                const status = result.status;
+                const redirect = result.path;
+                if (redirectHistory.has(route)) {
+                    const error = new RouterError('Circular Redirect', 500);
+                    return await this.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error });
+                } else {
+                    redirectHistory.set(route, true);
+                    return doRun(redirect, location, ctx, redirect, status);
+                }
+            }
+            await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx });
+
+            return { path, location, route, status, params, redirect, result, ctx, error: null };
+        };
+
+        return doRun(path, location, ctx);
     }
 }
