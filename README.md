@@ -5,10 +5,10 @@
 ```bash
 git clone https://github.com/router-async/router-async.git
 cd router-async
-npm i
+yarn
 
-npm i -g typings
+yarn global add typings
 typings install
 
-npm run watch
+yarn run watch
 ```
