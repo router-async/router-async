@@ -37,11 +37,11 @@
   },
   "devDependencies": {
     "ava": "^0.16.0",
+    "coveralls": "^2.11.15",
     "nyc": "^8.4.0",
     "typescript": "^2.1.4"
   },
   "dependencies": {
-    "coveralls": "^2.11.15",
     "path-to-regexp": "^1.6.0",
     "query-string": "^4.2.3"
   },
