@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { Router, Redirect } from './index';
+import { Router, Redirect, RouterError } from './index';
 
 const routes = [
     {
@@ -101,6 +101,32 @@ const routes = [
                         }
                     }
                 ]
+            },
+            {
+                path: 'error',
+                action() {
+                    return new RouterError();
+                }
+            },
+            {
+                path: 'error-middleware',
+                action() {
+                    return new RouterError('Access Forbidden', 403);
+                },
+                childs: [
+                    {
+                        path: 'child1',
+                        action() {
+                            return 'Yo'
+                        }
+                    },
+                    {
+                        path: 'child2',
+                        action() {
+                            return 'Hi';
+                        }
+                    }
+                ]
             }
         ]
     }
@@ -183,4 +209,26 @@ test('test dynamic redirect in middleware', async t => {
     t.is(result1, 'Home sweet home!');
     const { result: result2 } = await router.run({ path: '/redirect-middleware/child2' });
     t.is(result2, 'Home sweet home!');
+});
+
+// Errors:
+test('test simple router error', async t => {
+    const { error } = await router.run({ path: '/error' });
+    t.deepEqual(error, {
+        message: 'Internal Error',
+        status: 500
+    });
+});
+test('test router error in middleware', async t => {
+    t.plan(2);
+    const { error: error1 } = await router.run({ path: '/error-middleware/child1' });
+    t.deepEqual(error1, {
+        message: 'Access Forbidden',
+        status: 403
+    });
+    const { error: error2 } = await router.run({ path: '/error-middleware/child2' });
+    t.deepEqual(error2, {
+        message: 'Access Forbidden',
+        status: 403
+    });
 });
