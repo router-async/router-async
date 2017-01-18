@@ -1,18 +1,18 @@
 import test from 'ava';
 
-import { Router, Redirect, RouterError } from './index';
+import { Router, Redirect, RouterError, RawRoute, Action, ActionOptions } from './index';
 
-const routes = [
+const routes: Array<RawRoute> = [
     {
         path: '/lalala/:param',
-        action(options) {
-            return 'lalala' + '/' + options.params.param + options.location.search;
+        action(options: ActionOptions) {
+            return 'lalala' + '/' + options.params['param'] + options.location.search;
         }
     },
     {
         path: '/',
-        async action(next, options) {
-            options.ctx.mProp = true;
+        async action(next: Action, options: ActionOptions) {
+            // options.ctx.set('mProp', true);
             return await next(options);
         },
         childs: [
@@ -24,7 +24,7 @@ const routes = [
             },
             {
                 path: '/news',
-                action(next, options) {
+                action(next: Action, options: ActionOptions) {
                     return next(options);
                 },
                 childs: [

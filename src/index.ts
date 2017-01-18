@@ -1,11 +1,11 @@
 import * as pathToRegexp from 'path-to-regexp';
 import * as queryString from 'query-string';
 
-export const parseQuery = query => queryString.parse(query);
-export const stringifyQuery = query => queryString.stringify(query);
+export const parseQuery = (query: string) => queryString.parse(query);
+export const stringifyQuery = (query: Object) => queryString.stringify(query);
 
 //TODO: maybe export location and work with location instead of path
-const createLocation = path => {
+const createLocation = (path: string): Location => {
     const parsedPath = parsePath(path);
     return {
         ...parsedPath,
@@ -14,7 +14,7 @@ const createLocation = path => {
     };
 };
 
-const parsePath = path => {
+const parsePath = (path: string) => {
     let pathname = path || '/';
     let search = '';
     let hash = '';
@@ -38,11 +38,11 @@ const parsePath = path => {
     }
 };
 
-function trimSlashes(str) {
+function trimSlashes(str: string) {
     return str.replace(/^\/+|\/+$/g,'');
 }
 
-function decodeParam(val) {
+function decodeParam(val: undefined|string) {
     if (val === undefined || val === '') {
         return val;
     }
@@ -54,29 +54,56 @@ function decodeParam(val) {
     }
 }
 
-// TODO: write correct types
-export interface Match {
-    length: number,
-    [index: number]: string;
+export interface Object {
+    [index: string]: any;
 }
-export interface Key {
-    name: string
+export interface RootRoute {
+    path?: string;
+    action?: Action|Middleware;
+    childs: Array<RawRoute>;
+    status?: number;
+    to?: never;
+}
+export interface RawRoute {
+    path: string;
+    action?: Action|Middleware;
+    childs?: Array<RawRoute>;
+    to?: string;
+    status?: number;
+}
+export interface Route {
+    path: string;
+    action?: Action|Middleware;
+    pattern: RegExp;
+    keys?: Array<pathToRegexp.Key>;
+    status?: number;
+    to?: string;
+}
+export interface Action {
+    (options: ActionOptions): any;
+}
+export interface Middleware {
+    (next: Action|Middleware, options: ActionOptions): any;
 }
 export interface ActionOptions {
     path: string,
-    keys: Array<Key>
+    location: Location,
+    route: Route,
+    status: number,
+    params: Object,
+    redirect: string|null,
+    ctx: Context;
 }
-export interface Action {
-    (ActionOptions): any
-}
-export interface Route {
-    action: Action,
-    keys: Array<Key>;
+export interface Location {
+    pathname: string,
+    search: string,
+    hash: string,
+    query: Object
 }
 
 export class RouterError {
-    message: string;
-    status: number;
+    public message: string;
+    public status: number;
     constructor(message: string = 'Internal Error', status: number = 500) {
         this.message = message;
         this.status = status;
@@ -84,8 +111,8 @@ export class RouterError {
 }
 
 export class Redirect {
-    path: string;
-    status: number;
+    public path: string;
+    public status: number;
     constructor(path: string, status: number = 302) {
         this.path = path;
         this.status = status;
@@ -97,14 +124,14 @@ export class Context {
     constructor() {
         this.keys = {};
     }
-    set(key, value) {
+    set(key: string, value: any) {
         if (key in this.keys) {
             console.warn(`Key ${key} is already set to context`);
         } else {
             this.keys[key] = value;
         }
     }
-    get(key) {
+    get(key: string) {
         if (key in this.keys) {
             return this.keys[key];
         } else {
@@ -114,9 +141,9 @@ export class Context {
 }
 
 export class Router {
-    private routes: any;
+    private routes: Array<Route>;
     private hooks: any;
-    constructor({ routes, hooks = {} }) {
+    constructor({ routes, hooks = {} }: { routes: RootRoute|Array<RawRoute>, hooks?: Object }) {
         this.routes = [];
         this.hooks = hooks;
         if (Array.isArray(routes)) {
@@ -124,7 +151,7 @@ export class Router {
         }
         this.walk(routes);
     }
-    private walk(route, walkPath = []) {
+    private walk(route: RootRoute|RawRoute, walkPath: Array<RootRoute|RawRoute> = []) {
         if (route.childs) {
             walkPath.push(route);
             for (const child of route.childs) {
@@ -139,7 +166,7 @@ export class Router {
                 if (step.path) path += `/${trimSlashes(step.path)}`;
             }
             path = `/${trimSlashes(path)}`;
-            const keys = [];
+            const keys: Array<pathToRegexp.Key> = [];
             const pattern = pathToRegexp(path, keys);
             // wrap action with middlewares
             let action = route.action ? route.action : null;
@@ -154,10 +181,10 @@ export class Router {
                 }
             }
             // push result route
-            let resultRoute = {
-                path
+            let resultRoute: Route = {
+                path,
+                pattern
             };
-            if (pattern) resultRoute['pattern'] = pattern;
             if (keys) resultRoute['keys'] = keys;
             if (action) resultRoute['action'] = action;
             if (route.status) resultRoute['status'] = route.status;
@@ -165,7 +192,7 @@ export class Router {
             this.routes.push(resultRoute);
         }
     }
-    private matchRoute(path): any {
+    private matchRoute(path: string): Object {
         for (const route of this.routes) {
             const match = route.pattern.exec(path);
             if (match) {
@@ -174,21 +201,21 @@ export class Router {
         }
         return { route: null, match: null, error: new RouterError('Not Found', 404) };
     }
-    private async handleError(params) {
+    private async handleError(params: Object) {
         await this.runHooks('error', { ...params });
         return { ...params };
     }
 
-    public async runHooks(hook, options) {
+    public async runHooks(hook: string, options: Object) {
         for (const hooks of this.hooks) {
             if (hooks[hook]) await hooks[hook](options);
         }
     }
-    public async match({ path, ctx }) {
+    public async match({ path, ctx }: { path: string, ctx: Context }) {
         const { pathname } = createLocation(path);
         const redirectHistory = new Map();
 
-        const doMatch = (pathname, status = null, redirect = null) => {
+        const doMatch = (pathname: string, status: number|null = null, redirect: string|null = null): Object => {
             const { route, match, error } = this.matchRoute(pathname);
             if (error !== null) return { route, match, status: error.status, redirect, error};
             if (route.status) status = route.status;
@@ -213,18 +240,18 @@ export class Router {
         if (error !== null) {
             return { route, status, redirect, error, params: null }
         } else {
-            let params = {};
+            let params: Object = {};
             for (let i = 1; i < match.length; i += 1) {
                 params[route.keys[i - 1].name] = decodeParam(match[i]);
             }
             return { route, status, redirect, error, params };
         }
     }
-    public async run({ path, ctx = new Context() }) {
+    public async run({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
         const location = createLocation(path);
         const redirectHistory = new Map();
 
-        const doRun = async (path, location, ctx, redirect = null, status = null) => {
+        const doRun = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
             await this.runHooks('start', { path, location, ctx });
 
             const matchResult = await this.match({ path, ctx });
