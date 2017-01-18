@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { Router, DynamicRedirect, RouterError, RawRoute, Action, ActionOptions } from './index';
+import { Router, DynamicRedirect, RouterError, RawRoute, Action, ActionOptions, Context } from './index';
 
 const routes: Array<RawRoute> = [
     {
@@ -132,7 +132,15 @@ const routes: Array<RawRoute> = [
     }
 ];
 
-const router = new Router({ routes });
+const hooks = [
+    {
+        start: ({ ctx }: { ctx: Context }) => { ctx.set('startHook', true) },
+        match: ({ ctx }: { ctx: Context }) => { ctx.set('matchHook', true) },
+        resolve: ({ ctx }: { ctx: Context }) => { ctx.set('resolveHook', true) }
+    }
+];
+
+const router = new Router({ routes, hooks });
 
 test('test children', async t => {
     const { result } = await router.run({ path: '/home' });
@@ -200,7 +208,7 @@ test('test dynamic circular redirect', async t => {
     });
 });
 test('test correct dynamic redirect status codes', async t => {
-    const { status } = await router.run({ path: '/dynamic-redirect-to-redirect' });
+    const { status, result } = await router.run({ path: '/dynamic-redirect-to-redirect' });
     t.true(status === 301 || status === 302);
 });
 test('test dynamic redirect in middleware', async t => {
@@ -231,4 +239,20 @@ test('test router error in middleware', async t => {
         message: 'Access Forbidden',
         status: 403
     });
+});
+
+// Hooks
+test('test run with hooks', async t => {
+    const { ctx } = await router.run({ path: '/home' });
+    t.plan(3);
+    t.is(ctx.get('startHook'), true);
+    t.is(ctx.get('matchHook'), true);
+    t.is(ctx.get('resolveHook'), true);
+});
+test('test resolve without hooks', async t => {
+    const { ctx } = await router.resolve({ path: '/home' });
+    t.plan(3);
+    t.is(ctx.get('startHook'), null);
+    t.is(ctx.get('matchHook'), null);
+    t.is(ctx.get('resolveHook'), null);
 });

@@ -142,7 +142,7 @@ export class Context {
 
 export class Router {
     private routes: Array<Route>;
-    private hooks: any;
+    private hooks: any; // TODO: correct type
     constructor({ routes, hooks = {} }: { routes: RootRoute|Array<RawRoute>, hooks?: Object }) {
         this.routes = [];
         this.hooks = hooks;
@@ -201,11 +201,46 @@ export class Router {
         }
         return { route: null, match: null, error: new RouterError('Not Found', 404) };
     }
-    private async handleError(params: Object) {
-        await this.runHooks('error', { ...params });
+    private async handleError(params: Object, isHooks: boolean) {
+        if (isHooks) await this.runHooks('error', { ...params });
         return { ...params };
     }
+    private async runOrResolve(path: string, ctx: Context, isHooks: boolean):Promise<Object> {
+        const location = createLocation(path);
+        const redirectHistory = new Map();
 
+        const doRunOrResolve = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
+            if (isHooks) await this.runHooks('start', { path, location, ctx });
+
+            const matchResult = await this.match({ path, ctx });
+            const { route, params, error } = matchResult;
+            if (redirect === null) {
+                redirect = matchResult.redirect;
+                status = matchResult.status;
+            }
+            if (error !== null) return await this.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error }, isHooks);
+            if (isHooks) await this.runHooks('match', { path, location, route, status, params, redirect, ctx });
+
+            const result = await route.action({ path, location, route, status, params, redirect, ctx });
+            if (result instanceof RouterError) return await this.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, isHooks);
+            if (result instanceof DynamicRedirect) {
+                const status = result.status;
+                const redirect = result.path;
+                if (redirectHistory.has(route)) {
+                    const error = new RouterError('Circular Redirect', 500);
+                    return await this.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error }, isHooks);
+                } else {
+                    redirectHistory.set(route, true);
+                    return doRunOrResolve(redirect, location, ctx, redirect, status);
+                }
+            }
+            if (isHooks) await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx });
+
+            return { path, location, route, status, params, redirect, result, ctx, error: null };
+        };
+
+        return doRunOrResolve(path, location, ctx);
+    }
     public async runHooks(hook: string, options: Object) {
         for (const hooks of this.hooks) {
             if (hooks[hook]) await hooks[hook](options);
@@ -247,40 +282,12 @@ export class Router {
             return { route, status, redirect, error, params };
         }
     }
+    // without hooks
+    public async resolve({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
+        return await this.runOrResolve(path, ctx, false);
+    }
+    // with hooks
     public async run({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
-        const location = createLocation(path);
-        const redirectHistory = new Map();
-
-        const doRun = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
-            await this.runHooks('start', { path, location, ctx });
-
-            const matchResult = await this.match({ path, ctx });
-            const { route, params, error } = matchResult;
-            if (redirect === null) {
-                redirect = matchResult.redirect;
-                status = matchResult.status;
-            }
-            if (error !== null) return await this.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error });
-            await this.runHooks('match', { path, location, route, status, params, redirect, ctx });
-
-            const result = await route.action({ path, location, route, status, params, redirect, ctx });
-            if (result instanceof RouterError) return await this.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result });
-            if (result instanceof DynamicRedirect) {
-                const status = result.status;
-                const redirect = result.path;
-                if (redirectHistory.has(route)) {
-                    const error = new RouterError('Circular Redirect', 500);
-                    return await this.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error });
-                } else {
-                    redirectHistory.set(route, true);
-                    return doRun(redirect, location, ctx, redirect, status);
-                }
-            }
-            await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx });
-
-            return { path, location, route, status, params, redirect, result, ctx, error: null };
-        };
-
-        return doRun(path, location, ctx);
+        return await this.runOrResolve(path, ctx, true);
     }
 }
