@@ -110,7 +110,7 @@ export class RouterError {
     }
 }
 
-export class Redirect {
+export class DynamicRedirect {
     public path: string;
     public status: number;
     constructor(path: string, status: number = 302) {
@@ -265,7 +265,7 @@ export class Router {
 
             const result = await route.action({ path, location, route, status, params, redirect, ctx });
             if (result instanceof RouterError) return await this.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result });
-            if (result instanceof Redirect) {
+            if (result instanceof DynamicRedirect) {
                 const status = result.status;
                 const redirect = result.path;
                 if (redirectHistory.has(route)) {

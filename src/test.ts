@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { Router, Redirect, RouterError, RawRoute, Action, ActionOptions } from './index';
+import { Router, DynamicRedirect, RouterError, RawRoute, Action, ActionOptions } from './index';
 
 const routes: Array<RawRoute> = [
     {
@@ -61,31 +61,31 @@ const routes: Array<RawRoute> = [
             {
                 path: 'dynamic-redirect',
                 action() {
-                    return new Redirect('/home');
+                    return new DynamicRedirect('/home');
                 }
             },
             {
                 path: 'dynamic-redirect-to-redirect',
                 action() {
-                    return new Redirect('/dynamic-redirect');
+                    return new DynamicRedirect('/dynamic-redirect');
                 }
             },
             {
                 path: 'dynamic-redirect1',
                 action() {
-                    return new Redirect('/dynamic-redirect2');
+                    return new DynamicRedirect('/dynamic-redirect2');
                 }
             },
             {
                 path: 'dynamic-redirect2',
                 action() {
-                    return new Redirect('/dynamic-redirect1');
+                    return new DynamicRedirect('/dynamic-redirect1');
                 }
             },
             {
                 path: 'redirect-middleware',
                 action() {
-                    return new Redirect('/home');
+                    return new DynamicRedirect('/home');
                 },
                 childs: [
                     {
