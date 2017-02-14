@@ -37,7 +37,6 @@
   "devDependencies": {
     "coveralls": "^2.11.15",
     "jest": "^18.1.0",
-    "nyc": "^8.4.0",
     "ts-jest": "^18.0.3",
     "typescript": "^2.1.4"
   },
