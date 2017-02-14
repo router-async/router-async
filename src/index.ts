@@ -55,7 +55,10 @@ function decodeParam(val: undefined|string) {
 }
 
 export interface Object {
-    [index: string]: any;
+    [index: string]: any,
+    // TODO: fix types
+    error?: any,
+    status?: any;
 }
 export interface RootRoute {
     path?: string;
@@ -210,7 +213,8 @@ export class Router {
         const redirectHistory = new Map();
 
         const doRunOrResolve = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
-            if (isHooks) await this.runHooks('start', { path, location, ctx });
+            const resultStartHooks = await this.runHooks('start', { path, location, ctx }, isHooks);
+            if (resultStartHooks !== null) return resultStartHooks;
 
             const matchResult = await this.match({ path, ctx });
             const { route, params, error } = matchResult;
@@ -219,7 +223,8 @@ export class Router {
                 status = matchResult.status;
             }
             if (error !== null) return await this.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error }, isHooks);
-            if (isHooks) await this.runHooks('match', { path, location, route, status, params, redirect, ctx });
+            const resultMatchHooks = await this.runHooks('match', { path, location, route, status, params, redirect, ctx }, isHooks);
+            if (resultMatchHooks !== null) return resultMatchHooks;
 
             const result = await route.action({ path, location, route, status, params, redirect, ctx });
             if (result instanceof RouterError) return await this.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, isHooks);
@@ -234,17 +239,28 @@ export class Router {
                     return doRunOrResolve(redirect, location, ctx, redirect, status);
                 }
             }
-            if (isHooks) await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx });
+            const resolveMatchHooks = await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx }, isHooks);
+            if (resolveMatchHooks !== null) return resolveMatchHooks;
 
             return { path, location, route, status, params, redirect, result, ctx, error: null };
         };
 
         return doRunOrResolve(path, location, ctx);
     }
-    public async runHooks(hook: string, options: Object) {
-        for (const hooks of this.hooks) {
-            if (hooks[hook]) await hooks[hook](options);
+    public async runHooks(hook: string, options: Object = { ctx: new Context }, isHooks: boolean = true) {
+        if (isHooks) {
+            for (const hooks of this.hooks) {
+                if (hooks[hook]) {
+                    const result = await hooks[hook](options);
+                    if (result instanceof RouterError) {
+                        options.error = result;
+                        options.status = result.status;
+                        return await this.handleError(options, isHooks);
+                    }
+                }
+            }
         }
+        return null;
     }
     public async match({ path, ctx }: { path: string, ctx: Context }) {
         const { pathname } = createLocation(path);

@@ -134,9 +134,14 @@ const routes: Array<RawRoute> = [
 
 const hooks = [
     {
-        start: ({ ctx }: { ctx: Context }) => { ctx.set('startHook', true) },
-        match: ({ ctx }: { ctx: Context }) => { ctx.set('matchHook', true) },
-        resolve: ({ ctx }: { ctx: Context }) => { ctx.set('resolveHook', true) }
+        start: ({ ctx }: { ctx: Context }) => { ctx.set('startHook', true); },
+        match: ({ ctx }: { ctx: Context }) => {
+            ctx.set('matchHook', true);
+            if (ctx.get('error') === true) {
+                return new RouterError('Hook Error', 500);
+            }
+        },
+        resolve: ({ ctx }: { ctx: Context }) => { ctx.set('resolveHook', true); }
     }
 ];
 
@@ -220,7 +225,7 @@ test('test dynamic redirect in middleware', async t => {
 });
 
 // Errors:
-test('test simple router error', async t => {
+test('test router error in action', async t => {
     const { error } = await router.run({ path: '/error' });
     t.deepEqual(error, {
         message: 'Internal Error',
@@ -240,6 +245,15 @@ test('test router error in middleware', async t => {
         status: 403
     });
 });
+test('test router error in hook', async t => {
+    const ctx = new Context;
+    ctx.set('error', true);
+    const { error } = await router.run({ path: '/home', ctx });
+    t.deepEqual(error, {
+        message: 'Hook Error',
+        status: 500
+    });
+});
 
 // Hooks
 test('test run with hooks', async t => {
@@ -256,3 +270,8 @@ test('test resolve without hooks', async t => {
     t.is(ctx.get('matchHook'), null);
     t.is(ctx.get('resolveHook'), null);
 });
+test('test runHooks must return null', async t => {
+    const result = await router.runHooks('start');
+    t.is(result, null);
+});
+// TODO: test that options/params in hooks always have ctx
