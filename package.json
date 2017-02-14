@@ -32,8 +32,7 @@
     "transpile": "yarn run clean && tsc -p tsconfig.build.json",
     "test": "jest",
     "coverage": "jest --no-cache --coverage",
-    "report": "yarn coverage && nyc report --temp-directory=coverage/remapped --reporter=html",
-    "coveralls": "yarn coverage && nyc report --temp-directory=coverage/remapped --reporter=text-lcov | coveralls"
+    "coveralls": "yarn coverage && cat ./coverage/remapped/lcov.info | coveralls"
   },
   "devDependencies": {
     "coveralls": "^2.11.15",
