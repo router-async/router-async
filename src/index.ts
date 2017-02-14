@@ -129,7 +129,8 @@ export class Context {
     }
     set(key: string, value: any) {
         if (key in this.keys) {
-            console.warn(`Key ${key} is already set to context`);
+            // TODO: shows in tests in redirects, make more smart way
+            // console.warn(`Key ${key} is already set to context`);
         } else {
             this.keys[key] = value;
         }

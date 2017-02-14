@@ -11,6 +11,7 @@
   },
   "include": [
     "src/**/*",
+    "__tests__/**/*",
     "typings/index.d.ts"
   ],
   "exclude": [

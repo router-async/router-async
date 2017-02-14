@@ -29,30 +29,43 @@
   "scripts": {
     "clean": "rm -rf lib",
     "watch": "yarn run clean && tsc -p . --watch",
-    "transpile": "yarn run clean && tsc -p .",
-    "tsc": "tsc",
-    "test": "tsc && ava",
-    "report": "nyc ava && nyc report --reporter=html",
-    "coverage": "nyc ava && nyc report --reporter=text-lcov | coveralls"
+    "transpile": "yarn run clean && tsc -p tsconfig.build.json",
+    "test": "jest",
+    "coverage": "jest --no-cache --coverage",
+    "report": "yarn coverage && nyc report --temp-directory=coverage/remapped --reporter=html",
+    "coveralls": "yarn coverage && nyc report --temp-directory=coverage/remapped --reporter=text-lcov | coveralls"
   },
   "devDependencies": {
-    "ava": "^0.16.0",
     "coveralls": "^2.11.15",
+    "jest": "^18.1.0",
     "nyc": "^8.4.0",
+    "ts-jest": "^18.0.3",
     "typescript": "^2.1.4"
   },
   "dependencies": {
     "path-to-regexp": "^1.6.0",
     "query-string": "^4.2.3"
   },
-  "ava": {
-    "files": [
-      "lib/test.js"
+  "jest": {
+    "transform": {
+      ".(ts|tsx)": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testResultsProcessor": "<rootDir>/node_modules/ts-jest/coverageprocessor.js",
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
     ]
   },
   "nyc": {
     "include": [
-      "lib/index.js"
+      "src/**/*"
+    ],
+    "extension": [
+      "ts",
+      "tsx",
+      "js"
     ]
   }
 }

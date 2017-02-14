@@ -12,7 +12,8 @@ script:
   - typings install
   - npm run transpile
   - npm test
-  - npm run coverage
+
+after_success: npm run coveralls
 
 deploy:
   provider: npm
