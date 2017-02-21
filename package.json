@@ -28,7 +28,7 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "clean": "rm -rf lib",
-    "watch": "yarn run clean && tsc -p . --watch",
+    "watch": "yarn run clean && tsc --watch -p tsconfig.build.json",
     "transpile": "yarn run clean && tsc -p tsconfig.build.json",
     "test": "jest",
     "coverage": "jest --no-cache --coverage",
