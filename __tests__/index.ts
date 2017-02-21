@@ -125,6 +125,13 @@ const routes: Array<RawRoute> = [
                         }
                     }
                 ]
+            },
+            {
+                path: 'delayed',
+                async action() {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return 'delayed result';
+                }
             }
         ]
     }
@@ -273,3 +280,33 @@ it('test runHooks must return null', async () => {
     expect(result).toBe(null);
 });
 // TODO: test that options/params in hooks always have ctx
+
+
+it('test router run in parallel not allowed', () => {
+    expect.assertions(2);
+    return Promise.all([
+        router.run({ path: '/delayed' }).then(({ result }) => {
+            expect(result).toBe('delayed result');
+        }),
+        router.run({ path: '/home' }).then(({ error }) => {
+            expect(error).toEqual({
+                message: 'Already running',
+                status: 500
+            });
+        })
+    ])
+});
+it('test router resolve in parallel not allowed', () => {
+    expect.assertions(2);
+    return Promise.all([
+        router.resolve({ path: '/delayed' }).then(({ result }) => {
+            expect(result).toBe('delayed result');
+        }),
+        router.resolve({ path: '/home' }).then(({ error }) => {
+            expect(error).toEqual({
+                message: 'Already running',
+                status: 500
+            });
+        })
+    ])
+});

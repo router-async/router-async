@@ -147,6 +147,7 @@ export class Context {
 export class Router {
     private routes: Array<Route>;
     private hooks: any; // TODO: correct type
+    public isRunning: boolean = false;
     constructor({ routes, hooks = {} }: { routes: RootRoute|Array<RawRoute>, hooks?: Object }) {
         this.routes = [];
         this.hooks = hooks;
@@ -248,6 +249,16 @@ export class Router {
 
         return doRunOrResolve(path, location, ctx);
     }
+    private async checkIsRunning(path: string, ctx: Context, isHook: boolean) {
+        if (this.isRunning === true) {
+            return new Promise(resolve => resolve({ path, location: null, route: null, status: 500, params: null, redirect: null, result: null, ctx, error: new RouterError('Already running', 500) }));
+        } else {
+            this.isRunning = true;
+            const result = await this.runOrResolve(path, ctx, isHook);
+            this.isRunning = false;
+            return result;
+        }
+    }
     public async runHooks(hook: string, options: Object = { ctx: new Context }, isHooks: boolean = true) {
         if (isHooks) {
             for (const hooks of this.hooks) {
@@ -301,10 +312,10 @@ export class Router {
     }
     // without hooks
     public async resolve({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
-        return await this.runOrResolve(path, ctx, false);
+        return this.checkIsRunning(path, ctx, false);
     }
     // with hooks
     public async run({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
-        return await this.runOrResolve(path, ctx, true);
+        return this.checkIsRunning(path, ctx, true);
     }
 }
