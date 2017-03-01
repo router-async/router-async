@@ -103,6 +103,17 @@ export interface Location {
     hash: string,
     query: Object
 }
+export interface RouterResult {
+    path: string,
+    location: Location,
+    route: Route,
+    status: number,
+    params: Object,
+    redirect: string|null,
+    result: any,
+    ctx: Context,
+    error: null|RouterError;
+}
 
 export class RouterError {
     public message: string;
@@ -144,10 +155,63 @@ export class Context {
     }
 }
 
+export class Transition {
+    public isCancelled: boolean = false;
+    private router: Router;
+    constructor(router: Router) {
+        this.router = router;
+    }
+    public cancel() {
+        this.isCancelled = true;
+    }
+    public async runOrResolve(path: string, ctx: Context, isHooks: boolean):Promise<Object> {
+        const location = createLocation(path);
+        const redirectHistory = new Map();
+
+        const doRunOrResolve = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
+            const resultStartHooks = await this.router.runHooks('start', this, { path, location, ctx }, isHooks);
+            if (resultStartHooks !== null) return resultStartHooks;
+
+            const matchResult = await this.router.match({ path, ctx });
+            const { route, params, error } = matchResult;
+            if (redirect === null) {
+                redirect = matchResult.redirect;
+                status = matchResult.status;
+            }
+            if (error !== null) return await this.router.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error }, this, isHooks);
+            const resultMatchHooks = await this.router.runHooks('match', this, { path, location, route, status, params, redirect, ctx }, isHooks);
+            if (resultMatchHooks !== null) return resultMatchHooks;
+
+            let result = null;
+            if (!this.isCancelled) result = await route.action({ path, location, route, status, params, redirect, ctx });
+            if (result instanceof RouterError) return await this.router.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, this, isHooks);
+            if (result instanceof DynamicRedirect) {
+                const status = result.status;
+                const redirect = result.path;
+                if (redirectHistory.has(route)) {
+                    const error = new RouterError('Circular Redirect', 500);
+                    return await this.router.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error }, this, isHooks);
+                } else {
+                    redirectHistory.set(route, true);
+                    return doRunOrResolve(redirect, location, ctx, redirect, status);
+                }
+            }
+            const resolveMatchHooks = await this.router.runHooks('resolve', this, { path, location, route, status, params, redirect, result, ctx }, isHooks);
+            if (resolveMatchHooks !== null) return resolveMatchHooks;
+
+            return { path, location, route, status, params, redirect, result, ctx, error: null };
+        };
+
+        return doRunOrResolve(path, location, ctx);
+    }
+}
+
 export class Router {
     private routes: Array<Route>;
     private hooks: any; // TODO: correct type
+    private complete: Function;
     public isRunning: boolean = false;
+    public currentTransition: Transition;
     constructor({ routes, hooks = {} }: { routes: RootRoute|Array<RawRoute>, hooks?: Object }) {
         this.routes = [];
         this.hooks = hooks;
@@ -206,68 +270,36 @@ export class Router {
         }
         return { route: null, match: null, error: new RouterError('Not Found', 404) };
     }
-    private async handleError(params: Object, isHooks: boolean) {
-        if (isHooks) await this.runHooks('error', { ...params });
-        return { ...params };
-    }
-    private async runOrResolve(path: string, ctx: Context, isHooks: boolean):Promise<Object> {
-        const location = createLocation(path);
-        const redirectHistory = new Map();
-
-        const doRunOrResolve = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
-            const resultStartHooks = await this.runHooks('start', { path, location, ctx }, isHooks);
-            if (resultStartHooks !== null) return resultStartHooks;
-
-            const matchResult = await this.match({ path, ctx });
-            const { route, params, error } = matchResult;
-            if (redirect === null) {
-                redirect = matchResult.redirect;
-                status = matchResult.status;
-            }
-            if (error !== null) return await this.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error }, isHooks);
-            const resultMatchHooks = await this.runHooks('match', { path, location, route, status, params, redirect, ctx }, isHooks);
-            if (resultMatchHooks !== null) return resultMatchHooks;
-
-            const result = await route.action({ path, location, route, status, params, redirect, ctx });
-            if (result instanceof RouterError) return await this.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, isHooks);
-            if (result instanceof DynamicRedirect) {
-                const status = result.status;
-                const redirect = result.path;
-                if (redirectHistory.has(route)) {
-                    const error = new RouterError('Circular Redirect', 500);
-                    return await this.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error }, isHooks);
-                } else {
-                    redirectHistory.set(route, true);
-                    return doRunOrResolve(redirect, location, ctx, redirect, status);
-                }
-            }
-            const resolveMatchHooks = await this.runHooks('resolve', { path, location, route, status, params, redirect, result, ctx }, isHooks);
-            if (resolveMatchHooks !== null) return resolveMatchHooks;
-
-            return { path, location, route, status, params, redirect, result, ctx, error: null };
-        };
-
-        return doRunOrResolve(path, location, ctx);
-    }
     private async checkIsRunning(path: string, ctx: Context, isHook: boolean) {
         if (this.isRunning === true) {
             return new Promise(resolve => resolve({ path, location: null, route: null, status: 500, params: null, redirect: null, result: null, ctx, error: new RouterError('Already running', 500) }));
         } else {
-            this.isRunning = true;
-            const result = await this.runOrResolve(path, ctx, isHook);
-            this.isRunning = false;
-            return result;
+            this.currentTransition = new Transition(this);
+            return new Promise(async resolve => {
+                this.complete = resolve;
+                this.isRunning = true;
+                const result = await this.currentTransition.runOrResolve(path, ctx, isHook);
+                this.isRunning = false;
+                resolve(result);
+            })
         }
     }
-    public async runHooks(hook: string, options: Object = { ctx: new Context }, isHooks: boolean = true) {
+    public async handleError(params: Object, transition: Transition, isHooks: boolean) {
+        if (isHooks) await this.runHooks('error', transition, { ...params });
+        return { ...params };
+    }
+    public async runHooks(hook: string, transition: Transition, options: Object = { ctx: new Context }, isHooks: boolean = true) {
         if (isHooks) {
             for (const hooks of this.hooks) {
                 if (hooks[hook]) {
-                    const result = await hooks[hook](options);
-                    if (result instanceof RouterError) {
-                        options.error = result;
-                        options.status = result.status;
-                        return await this.handleError(options, isHooks);
+                    if (transition instanceof Transition && !transition.isCancelled) {
+                        const result = await hooks[hook](options);
+                        if (result instanceof RouterError) {
+                            options.error = result;
+                            options.status = result.status;
+                            // TODO: RouterError in error hook can cause BOOM!
+                            return await this.handleError(options, transition, isHooks);
+                        }
                     }
                 }
             }
@@ -310,12 +342,26 @@ export class Router {
             return { route, status, redirect, error, params };
         }
     }
+    public cancel() {
+        if (this.currentTransition !== null) {
+            this.currentTransition.cancel();
+            for (const hooks of this.hooks) {
+                if (hooks['cancel']) {
+                    hooks['cancel']();
+                }
+            }
+            this.complete({ error: new RouterError('Cancelled', 500) });
+            this.isRunning = false;
+        } else {
+            // TODO: debug nothing to cancel
+        }
+    }
     // without hooks
-    public async resolve({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
+    public resolve({ path, ctx = new Context() }: { path: string, ctx?: Context }):Promise<RouterResult> {
         return this.checkIsRunning(path, ctx, false);
     }
     // with hooks
-    public async run({ path, ctx = new Context() }: { path: string, ctx?: Context }) {
+    public run({ path, ctx = new Context() }: { path: string, ctx?: Context }):Promise<RouterResult> {
         return this.checkIsRunning(path, ctx, true);
     }
 }
