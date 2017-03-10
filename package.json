@@ -35,14 +35,14 @@
     "coveralls": "yarn coverage && cat ./coverage/remapped/lcov.info | coveralls"
   },
   "devDependencies": {
-    "coveralls": "^2.11.15",
-    "jest": "^18.1.0",
-    "ts-jest": "^18.0.3",
-    "typescript": "^2.1.4"
+    "coveralls": "^2.12.0",
+    "jest": "^19.0.2",
+    "ts-jest": "^19.0.0",
+    "typescript": "^2.2.1"
   },
   "dependencies": {
-    "path-to-regexp": "^1.6.0",
-    "query-string": "^4.2.3"
+    "path-to-regexp": "^1.7.0",
+    "query-string": "^4.3.2"
   },
   "jest": {
     "transform": {
