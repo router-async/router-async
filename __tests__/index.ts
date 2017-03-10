@@ -332,10 +332,11 @@ it('test router resolve in parallel not allowed', () => {
         })
     ])
 });
-it('test router cancellation of current transition', async () => {
+
+it('test router cancellation of current transition', () => {
     const router = new Router({ routes, hooks });
-    const promise = router.run({ path: '/delayed' }).then(({ error }) => {
-        expect(error).toEqual({
+    const promise = router.run({ path: '/delayed' }).then((result) => {
+        expect(result.error).toEqual({
             message: 'Cancelled',
             status: 500
         });
@@ -361,5 +362,39 @@ it('test router run after cancellation', () => {
         promise1,
         promise2
     ]);
+});
+it('test cancel with hook', async () => {
+    let cancel = false;
+    const withCancel = [
+        ...hooks,
+        {
+            cancel: () => {
+                cancel = true;
+            }
+        }
+    ];
+    const router = new Router({ routes, hooks: withCancel });
+    const promise = router.run({ path: '/delayed' }).then(() => {
+        expect(cancel).toBe(true);
+    });
+    router.cancel();
+    return promise;
+});
+it('test cancel without hook', async () => {
+    let cancel = false;
+    const withCancel = [
+        ...hooks,
+        {
+            cancel: () => {
+                cancel = true;
+            }
+        }
+    ];
+    const router = new Router({ routes, hooks: withCancel });
+    const promise = router.run({ path: '/delayed' }).then(() => {
+        expect(cancel).toBe(false);
+    });
+    router.cancel(false);
+    return promise;
 });
 // TODO: test hook order execution after cancel

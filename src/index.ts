@@ -342,12 +342,14 @@ export class Router {
             return { route, status, redirect, error, params };
         }
     }
-    public cancel() {
+    public cancel(isHook: boolean = true) {
         if (this.currentTransition !== null) {
             this.currentTransition.cancel();
-            for (const hooks of this.hooks) {
-                if (hooks['cancel']) {
-                    hooks['cancel']();
+            if (isHook) {
+                for (const hooks of this.hooks) {
+                    if (hooks['cancel']) {
+                        hooks['cancel']();
+                    }
                 }
             }
             this.complete({ error: new RouterError('Cancelled', 500) });
