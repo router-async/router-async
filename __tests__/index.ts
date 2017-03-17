@@ -16,6 +16,7 @@ const routes: Array<RawRoute> = [
         childs: [
             {
                 path: 'home',
+                custom: true,
                 action() {
                     return 'Home sweet home!';
                 }
@@ -398,3 +399,9 @@ it('test cancel without hook', async () => {
     return promise;
 });
 // TODO: test hook order execution after cancel
+
+it('test custom field', async () => {
+    const router = new Router({ routes, hooks });
+    const { route } = await router.run({ path: '/home' });
+    expect(route.custom).toBe(true);
+});

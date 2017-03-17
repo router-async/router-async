@@ -73,6 +73,7 @@ export interface RawRoute {
     childs?: Array<RawRoute>;
     to?: string;
     status?: number;
+    [index: string]: any;
 }
 export interface Route {
     path: string;
@@ -81,6 +82,7 @@ export interface Route {
     keys?: Array<pathToRegexp.Key>;
     status?: number;
     to?: string;
+    [index: string]: any;
 }
 export interface Action {
     (options: ActionOptions): any;
@@ -251,13 +253,14 @@ export class Router {
             }
             // push result route
             let resultRoute: Route = {
+                ...route,
                 path,
                 pattern
             };
             if (keys) resultRoute['keys'] = keys;
             if (action) resultRoute['action'] = action;
-            if (route.status) resultRoute['status'] = route.status;
-            if (route.to) resultRoute['to'] = route.to;
+            // if (route.status) resultRoute['status'] = route.status;
+            // if (route.to) resultRoute['to'] = route.to;
             this.routes.push(resultRoute);
         }
     }
