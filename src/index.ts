@@ -198,8 +198,8 @@ export class Transition {
                     return doRunOrResolve(redirect, location, ctx, redirect, status);
                 }
             }
-            const resolveMatchHooks = await this.router.runHooks('resolve', this, { path, location, route, status, params, redirect, result, ctx }, isHooks);
-            if (resolveMatchHooks !== null) return resolveMatchHooks;
+            const resultResolveHooks = await this.router.runHooks('resolve', this, { path, location, route, status, params, redirect, result, ctx }, isHooks);
+            if (resultResolveHooks !== null) return resultResolveHooks;
 
             return { path, location, route, status, params, redirect, result, ctx, error: null };
         };
