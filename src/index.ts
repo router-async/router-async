@@ -155,6 +155,9 @@ export class Context {
             return null;
         }
     }
+    toObject() {
+        return this.keys;
+    }
 }
 
 export class Transition {
