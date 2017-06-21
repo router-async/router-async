@@ -156,7 +156,7 @@ export class Context {
         }
     }
     toObject() {
-        return this.keys;
+        return {...this.keys};
     }
 }
 
