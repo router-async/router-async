@@ -1,7 +1,0 @@
-{
-  "globalDependencies": {
-    "es2015": "registry:env/es2015#1.0.0+20160526151700",
-    "jest": "registry:dt/jest#18.1.0+20170131225342",
-    "query-string": "registry:dt/query-string#3.0.0+20161129181732"
-  }
-}

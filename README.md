@@ -8,8 +8,5 @@ git clone https://github.com/router-async/router-async.git
 cd router-async
 yarn
 
-yarn global add typings
-typings install
-
 yarn run watch
 ```

@@ -25,7 +25,7 @@
   },
   "license": "MIT",
   "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
+  "types": "lib/index.d.ts",
   "scripts": {
     "clean": "rm -rf lib",
     "watch": "yarn run clean && tsc --watch -p tsconfig.build.json",
@@ -35,6 +35,8 @@
     "coveralls": "yarn coverage && cat ./coverage/remapped/lcov.info | coveralls"
   },
   "devDependencies": {
+    "@types/jest": "^20.0.4",
+    "@types/query-string": "^4.3.1",
     "coveralls": "^2.12.0",
     "jest": "^19.0.2",
     "ts-jest": "^19.0.0",
