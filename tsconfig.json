@@ -9,7 +9,7 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "lib": ["es2015"],
-    "types": ["jest", "query-string"]
+    "types": ["node", "jest", "query-string"]
   },
   "include": [
     "src/**/*",
