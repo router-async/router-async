@@ -118,21 +118,11 @@ export interface RouterResult {
 }
 
 export class RouterError {
-    public message: string;
-    public status: number;
-    constructor(message: string = 'Internal Error', status: number = 500) {
-        this.message = message;
-        this.status = status;
-    }
+    constructor(public message: string = 'Internal Error', public status: number = 500) {}
 }
 
 export class DynamicRedirect {
-    public path: string;
-    public status: number;
-    constructor(path: string, status: number = 302) {
-        this.path = path;
-        this.status = status;
-    }
+    constructor(public path: string, public status: number = 302) {}
 }
 
 export class Context {
@@ -162,10 +152,7 @@ export class Context {
 
 export class Transition {
     public isCancelled: boolean = false;
-    private router: Router;
-    constructor(router: Router) {
-        this.router = router;
-    }
+    constructor(private router: Router) {}
     public cancel() {
         this.isCancelled = true;
     }
