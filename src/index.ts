@@ -152,43 +152,42 @@ export class Context {
 
 export class Transition {
     public isCancelled: boolean = false;
-    constructor(private router: Router) {}
     public cancel() {
         this.isCancelled = true;
     }
-    public async runOrResolve(path: string, ctx: Context, isHooks: boolean):Promise<Object> {
+    public async runOrResolve(path: string, ctx: Context, isHooks: boolean, router: Router):Promise<Object> {
         const location = createLocation(path);
         const redirectHistory = new Map();
 
         const doRunOrResolve = async (path: string, location: Object, ctx: Context, redirect: string|null = null, status: number|null = null):Promise<Object> => {
-            const resultStartHooks = await this.router.runHooks('start', this, { path, location, ctx }, isHooks);
+            const resultStartHooks = await router.runHooks('start', this, { path, location, ctx }, isHooks);
             if (resultStartHooks !== null) return resultStartHooks;
 
-            const matchResult = await this.router.match({ path, ctx });
+            const matchResult = await router.match({ path, ctx });
             const { route, params, error } = matchResult;
             if (redirect === null) {
                 redirect = matchResult.redirect;
                 status = matchResult.status;
             }
-            if (error !== null) return await this.router.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error }, this, isHooks);
-            const resultMatchHooks = await this.router.runHooks('match', this, { path, location, route, status, params, redirect, ctx }, isHooks);
+            if (error !== null) return await router.handleError({ path, location, route: null, status: error.status, params: null, redirect: null, result: null, ctx, error }, this, isHooks);
+            const resultMatchHooks = await router.runHooks('match', this, { path, location, route, status, params, redirect, ctx }, isHooks);
             if (resultMatchHooks !== null) return resultMatchHooks;
 
             let result = null;
             if (!this.isCancelled) result = await route.action({ path, location, route, status, params, redirect, ctx });
-            if (result instanceof RouterError) return await this.router.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, this, isHooks);
+            if (result instanceof RouterError) return await router.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, this, isHooks);
             if (result instanceof DynamicRedirect) {
                 const status = result.status;
                 const redirect = result.path;
                 if (redirectHistory.has(route)) {
                     const error = new RouterError('Circular Redirect', 500);
-                    return await this.router.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error }, this, isHooks);
+                    return await router.handleError({ path, location, route, status: error.status, params, redirect, result: null, ctx, error }, this, isHooks);
                 } else {
                     redirectHistory.set(route, true);
                     return doRunOrResolve(redirect, location, ctx, redirect, status);
                 }
             }
-            const resultResolveHooks = await this.router.runHooks('resolve', this, { path, location, route, status, params, redirect, result, ctx }, isHooks);
+            const resultResolveHooks = await router.runHooks('resolve', this, { path, location, route, status, params, redirect, result, ctx }, isHooks);
             if (resultResolveHooks !== null) return resultResolveHooks;
 
             return { path, location, route, status, params, redirect, result, ctx, error: null };
@@ -271,7 +270,7 @@ export class Router {
             return new Promise(async resolve => {
                 this.complete = resolve;
                 this.isRunning = true;
-                const result = await this.currentTransition.runOrResolve(path, ctx, isHook);
+                const result = await this.currentTransition.runOrResolve(path, ctx, isHook, this);
                 this.isRunning = false;
                 resolve(result);
             })
