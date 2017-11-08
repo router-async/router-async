@@ -266,7 +266,7 @@ export class Router {
         if (this.isRunning === true) {
             return new Promise(resolve => resolve({ path, location: null, route: null, status: 500, params: null, redirect: null, result: null, ctx, error: new RouterError('Already running', 500) }));
         } else {
-            this.currentTransition = new Transition(this);
+            this.currentTransition = new Transition();
             return new Promise(async resolve => {
                 this.complete = resolve;
                 this.isRunning = true;
