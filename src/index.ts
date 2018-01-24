@@ -176,7 +176,7 @@ export class Transition {
             if (resultMatchHooks !== null) return resultMatchHooks;
 
             let result = null;
-            if (!this.isCancelled) result = await route.action({ path, location, route, status, params, redirect, ctx });
+            if (!this.isCancelled) result = await route.action({ path, location, route, status, params, redirect, ctx, helpers: router.helpers });
             if (result instanceof RouterError) return await router.handleError({ path, location, route, status: result.status, params, redirect, result: null, ctx, error: result }, this, isHooks);
             if (result instanceof DynamicRedirect) {
                 const status = result.status;
@@ -203,11 +203,13 @@ export class Router {
     private routes: Array<Route>;
     private hooks: any; // TODO: correct type
     private complete: Function;
+    public helpers: any; // TODO: correct type
     public isRunning: boolean = false;
     public currentTransition: Transition;
-    constructor({ routes, hooks = {} }: { routes: RootRoute|Array<RawRoute>, hooks?: Object }) {
+    constructor({ routes, hooks = {}, helpers }: { routes: RootRoute|Array<RawRoute>, hooks?: Object, helpers?: any }) {
         this.routes = [];
         this.hooks = hooks;
+        this.helpers = helpers;
         if (Array.isArray(routes)) {
             routes = { childs: routes };
         }
@@ -275,14 +277,17 @@ export class Router {
                 const result = await this.currentTransition.runOrResolve(path, ctx, isHook, this);
                 this.isRunning = false;
 
-                if (onLeave) {
-                    onLeave();
-                    onLeave = null;
+                if (isHook) {
+                    if (onLeave) {
+                        onLeave();
+                        onLeave = null;
+                    }
+
+                    if (result.error === null && result.route.onLeave) {
+                        onLeave = result.route.onLeave.bind(null, result, this.helpers);
+                    }
                 }
 
-                if (result.error === null && result.route.onLeave) {
-                    onLeave = result.route.onLeave.bind(null, result);
-                }
                 resolve(result);
             })
         }
