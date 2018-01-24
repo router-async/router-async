@@ -150,6 +150,8 @@ export class Context {
     }
 }
 
+let onLeave: Function | null = null;
+
 export class Transition {
     public isCancelled: boolean = false;
     public cancel() {
@@ -272,6 +274,15 @@ export class Router {
                 this.isRunning = true;
                 const result = await this.currentTransition.runOrResolve(path, ctx, isHook, this);
                 this.isRunning = false;
+
+                if (onLeave) {
+                    onLeave();
+                    onLeave = null;
+                }
+
+                if (result.error === null && result.route.onLeave) {
+                    onLeave = result.route.onLeave.bind(null, result);
+                }
                 resolve(result);
             })
         }
