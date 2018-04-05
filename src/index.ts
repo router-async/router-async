@@ -61,14 +61,14 @@ export interface Object {
     status?: any;
 }
 export interface RootRoute {
-    path?: string;
+    path?: string | RegExp;
     action?: Action|Middleware;
     childs: Array<RawRoute>;
     status?: number;
     to?: never;
 }
 export interface RawRoute {
-    path: string;
+    path: string | RegExp;
     action?: Action|Middleware;
     childs?: Array<RawRoute>;
     to?: string;
@@ -76,7 +76,7 @@ export interface RawRoute {
     [index: string]: any;
 }
 export interface Route {
-    path: string;
+    path: string | RegExp;
     action?: Action|Middleware;
     pattern: RegExp;
     keys?: Array<pathToRegexp.Key>;
@@ -223,13 +223,26 @@ export class Router {
             const fullWalkPath = [...walkPath, route];
             const middlewares = [];
             // concatenate full path
-            let path = '';
+
+            let path: string | RegExp = '';
             for (const step of fullWalkPath) {
-                if (step.path) path += `/${trimSlashes(step.path)}`;
+                if(step.path) {
+                    if(step.path instanceof RegExp) {
+                        path = step.path;
+                    } else {
+                        path += `/${trimSlashes(step.path)}`;
+                    }
+                }
             }
-            path = `/${trimSlashes(path)}`;
+
+            if(!(path instanceof RegExp)) {
+                path = `/${trimSlashes(path)}`;
+            }
+
+            // console.log(123, path)
             const keys: Array<pathToRegexp.Key> = [];
             const pattern = pathToRegexp(path, keys);
+            // console.log(pattern)
             // wrap action with middlewares
             let action = route.action ? route.action : null;
             if (action) { // redirect don't have action

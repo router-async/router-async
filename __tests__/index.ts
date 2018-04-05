@@ -6,8 +6,15 @@ const routes: Array<RawRoute> = [
         action(options: ActionOptions) {
             return 'lalala' + '/' + options.params['param'] + options.location.search;
         }
-    },
-    {
+    }, {
+        path: /^\/bets\/my-line(?:\/([^\/]+))?(?:\/[^\/]+-id-(\d+))?(?:\/[^\/]+-id-(\d+))?$/,
+        action(options: ActionOptions) {
+            const keys = Object.keys(options.params);
+            const array = keys.map((key) => key + ':' + options.params[key]);
+
+            return 'bets/my-line' + 'params: ' + array.join(',');
+        }
+    }, {
         path: '/',
         async action(next: Action, options: ActionOptions) {
             // options.ctx.set('mProp', true);
@@ -404,4 +411,28 @@ it('test custom field', async () => {
     const router = new Router({ routes, hooks });
     const { route } = await router.run({ path: '/home' });
     expect(route.custom).toBe(true);
+});
+
+it('test /bets/my-line', async () => {
+    const router = new Router({ routes, hooks });
+    const { result } = await router.run({ path: '/bets/my-line' });
+    expect(result).toBe('bets/my-lineparams: 0:undefined,1:undefined,2:undefined');
+});
+
+it('test regexp lvl 1', async () => {
+    const router = new Router({ routes, hooks });
+    const { result } = await router.run({ path: '/bets/my-line/soccer' });
+    expect(result).toBe('bets/my-lineparams: 0:soccer,1:undefined,2:undefined');
+});
+
+it('test regexp lvl 2', async () => {
+    const router = new Router({ routes, hooks });
+    const { result } = await router.run({ path: '/bets/my-line/soccer/category-id-123' });
+    expect(result).toBe('bets/my-lineparams: 0:soccer,1:123,2:undefined');
+});
+
+it('ttest regexp lvl 3', async () => {
+    const router = new Router({ routes, hooks });
+    const { result } = await router.run({ path: '/bets/my-line/soccer/category-id-123/tournament-id-333' });
+    expect(result).toBe('bets/my-lineparams: 0:soccer,1:123,2:333');
 });
