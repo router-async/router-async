@@ -1,6 +1,6 @@
 {
   "name": "router-async",
-  "version": "0.5.16",
+  "version": "0.5.17",
   "author": {
     "name": "Oleg Martynov",
     "email": "olegman.ru@gmail.com",
@@ -18,6 +18,10 @@
     {
       "name": "Evgeny Samsonov",
       "url": "https://github.com/frooeyzanny"
+    },
+    {
+      "name": "Linda Rian",
+      "url": "https://github.com/ramoona"
     }
   ],
   "bugs": {
