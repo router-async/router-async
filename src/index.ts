@@ -1,7 +1,30 @@
 import * as pathToRegexp from 'path-to-regexp';
 import * as queryString from 'query-string';
 
-export const parseQuery = (query: string) => queryString.parse(query);
+const UNSAFE_CHARS_REGEXP = /[<>\/\u2028\u2029]/g;
+const ESCAPED_CHARS: Object = {
+    '<'     : '\\u003C',
+    '>'     : '\\u003E',
+    '/'     : '\\u002F',
+    '\u2028': '\\u2028',
+    '\u2029': '\\u2029'
+};
+
+function escapeUnsafeChars(unsafeChar: string) {
+    return ESCAPED_CHARS[unsafeChar];
+}
+
+export const parseQuery = (query: string) => {
+    const parsed =queryString.parse(query);
+
+    Object.keys(parsed).forEach(function (key) {
+        if(typeof parsed[key] === 'string') {
+            parsed[key] = parsed[key].replace(UNSAFE_CHARS_REGEXP, escapeUnsafeChars);
+        }
+    });
+
+    return parsed;
+};
 export const stringifyQuery = (query: Object) => queryString.stringify(query);
 
 //TODO: maybe export location and work with location instead of path
