@@ -155,7 +155,7 @@ export class Transition {
     public cancel() {
         this.isCancelled = true;
     }
-    public async runOrResolve(path: string, ctx: Context, isHooks: boolean, router: Router):Promise<Object> {
+    public runOrResolve(path: string, ctx: Context, isHooks: boolean, router: Router):Promise<Object> {
         const location = createLocation(path);
         const redirectHistory = new Map();
 
@@ -278,16 +278,21 @@ export class Router {
         return { route: null, match: null, error: new RouterError('Not Found', 404) };
     }
     private async checkIsRunning(path: string, ctx: Context, isHook: boolean) {
-        if (this.isRunning === true) {
+        if (this.isRunning) {
             return new Promise(resolve => resolve({ path, location: null, route: null, status: 500, params: null, redirect: null, result: null, ctx, error: new RouterError('Already running', 500) }));
         } else {
             this.currentTransition = new Transition();
-            return new Promise(async resolve => {
+            return new Promise(async (resolve, reject) => {
                 this.complete = resolve;
                 this.isRunning = true;
-                const result = await this.currentTransition.runOrResolve(path, ctx, isHook, this);
-                this.isRunning = false;
-                resolve(result);
+
+                try {
+                    const result = await this.currentTransition.runOrResolve(path, ctx, isHook, this);
+                    this.isRunning = false;
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                }
             })
         }
     }

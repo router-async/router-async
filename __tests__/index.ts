@@ -184,6 +184,15 @@ it('test query', async () => {
     expect(result).toBe('lalala/param?id=1');
 });
 
+it('test query exception', async () => {
+    try {
+        const router = new Router({ routes, hooks });
+        const { result } = await router.run({ path: '/lalala/param?barcode=%A8' });
+    } catch (error) {
+        expect(error.toString()).toBe('URIError: URI malformed');
+    }
+});
+
 it('test not found url', async () => {
     const router = new Router({ routes, hooks });
     const { error } = await router.run({ path: '/not-found' });
