@@ -198,7 +198,7 @@ export class Transition {
 }
 
 export class Router {
-    private routes: Array<Route>;
+    public routes: Array<Route>;
     private hooks: any; // TODO: correct type
     private complete: Function;
     public helpers: any; // TODO: correct type
